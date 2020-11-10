@@ -17,7 +17,8 @@ from .const import(
     MODBUS_HUB,
     IDENT,
     ENERGY_SENSOR,
-    DEVICE_CLASS_FREQUENCY
+    DEVICE_CLASS_FREQUENCY,
+    VERSION
 )
 
 from homeassistant.helpers.entity import Entity
@@ -76,7 +77,8 @@ class HPGSensor(Entity):
             "identifiers": {(DOMAIN, ident)},
             "manufacturer": "Peacefair",
             "model": "PZEM-004T",
-            "name": "Peacefair Power Gather"
+            "sw_version": VERSION,
+            "name": "Peacefair Energy Monitor"
         }
         hub.add_update(sensor_type, self.update)
 
