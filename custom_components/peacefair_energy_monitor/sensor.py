@@ -1,4 +1,5 @@
 from homeassistant.const import (
+    STATE_UNKNOWN,
     DEVICE_CLASS_VOLTAGE ,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_POWER,
@@ -53,9 +54,10 @@ ICONS = {
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     sensors = []
+    hub = hass.data[config_entry.entry_id][MODBUS_HUB]
     ident = hass.data[config_entry.entry_id][IDENT]
     for sensortype in HPG_SENSOR_TYPES:
-        sensor = HPGSensor(config_entry.entry_id, sensortype, ident)
+        sensor = HPGSensor(hub, config_entry.entry_id, sensortype, ident)
         sensors.append(sensor)
         if sensor.device_class == sensortype:
             if ENERGY_SENSOR not in hass.data[DOMAIN]:
@@ -64,7 +66,8 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(sensors)
 
 class HPGSensor(Entity):
-    def __init__(self, entry_id, sensor_type, ident):
+    def __init__(self, hub, entry_id, sensor_type, ident):
+        self._state = STATE_UNKNOWN
         self._unique_id = "sensor.{}_{}".format(ident, sensor_type)
         self._entry_id = entry_id
         self.entity_id = self._unique_id
@@ -75,12 +78,18 @@ class HPGSensor(Entity):
             "model": "PZEM-004T",
             "name": "Peacefair Power Gather"
         }
+        hub.add_update(sensor_type, self.update)
+
+    @property
+    def state(self):
+        return self._state
+
     def get_entry_id(self):
         return self._entry_id
 
-    @property
+    """@property
     def assumed_state(self):
-        return False
+        return False"""
 
     @property
     def should_poll(self):
@@ -110,3 +119,6 @@ class HPGSensor(Entity):
     def icon(self):
         return ICONS.get(self._sensor_type)
 
+    def update(self, state):
+        self._state = state
+        self.schedule_update_ha_state()

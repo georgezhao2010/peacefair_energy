@@ -98,6 +98,7 @@ class ModbusGather(ModbusHub, threading.Thread):
         self._slave = slave
         self._run = False
         self._interval = scan_interval
+        self._updates = {}
 
     def infogather(self):
 
@@ -113,9 +114,10 @@ class ModbusGather(ModbusHub, threading.Thread):
             data[DEVICE_CLASS_FREQUENCY] = result.registers[7] / 10
             data[DEVICE_CLASS_POWER_FACTOR] = result.registers[8] / 100
             for sensor_type in HPG_SENSOR_TYPES:
-                entity_id ="sensor.{}_{}".format(self._entity_id_base, sensor_type)
-                attrs = self._hass.states.get(entity_id).attributes
-                self._hass.states.async_set(entity_id, data[sensor_type], attrs)
+                if sensor_type in data:
+                    update_handle = self._updates[sensor_type]
+                    if update_handle is not None:
+                        update_handle(data[sensor_type])
 
     def run(self):
         self.connect()
@@ -143,4 +145,7 @@ class ModbusGather(ModbusHub, threading.Thread):
 
     def set_interval(self, interval):
         self._interval = interval
+
+    def add_update(self, sensor_type, handler):
+        self._updates[sensor_type] = handler
 
