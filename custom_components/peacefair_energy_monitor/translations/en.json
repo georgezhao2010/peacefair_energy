@@ -1,0 +1,24 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "protocol": "Protocol",
+                    "host": "Host",
+                    "port": "Port",
+                    "slave": "Slave"
+                },
+                "title": "Add Device"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "scan_interval": "Update Interval (seconds)"
+                }
+            }
+        }
+    }
+}
