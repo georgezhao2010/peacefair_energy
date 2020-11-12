@@ -8,7 +8,8 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_SLAVE,
     DEFAULT_PROTOCOL,
-    DEFAULT_PORT
+    DEFAULT_PORT,
+    DEVICES
 )
 
 from homeassistant.const import (
@@ -31,13 +32,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None, error=None):
 
         if user_input is not None:
-            return self.async_create_entry(
-                title="{}:{}:{}".format(
-                    user_input[CONF_HOST],
-                    user_input[CONF_PORT],
-                    user_input[CONF_SLAVE],
-                ) ,
-                data=user_input)
+            if DOMAIN in self.hass.data and DEVICES in self.hass.data[DOMAIN] and \
+                    "{}_{}".format(user_input[CONF_HOST], user_input[CONF_PORT]) in \
+                    self.hass.data[DOMAIN][DEVICES]:
+                return await self.async_step_user(error="device_exist")
+            else:
+                return self.async_create_entry(
+                    title="{}:{}:{}".format(
+                        user_input[CONF_HOST],
+                        user_input[CONF_PORT],
+                        user_input[CONF_SLAVE],
+                    ) ,
+                    data=user_input)
 
         return self.async_show_form(
             step_id="user",

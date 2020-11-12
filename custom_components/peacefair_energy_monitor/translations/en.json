@@ -1,5 +1,8 @@
 {
     "config": {
+        "error": {
+            "device_exist": "The device exist, choice another one"
+        },
         "step": {
             "user": {
                 "data": {

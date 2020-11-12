@@ -9,7 +9,8 @@ from .const import(
     IDENT,
     DEFAULT_SCAN_INTERVAL,
     ENERGY_SENSOR,
-    UN_SUBDISCRIPT
+    UN_SUBDISCRIPT,
+    DEVICES
 )
 
 from homeassistant.const import (
@@ -55,6 +56,8 @@ async def async_setup_entry(hass: HomeAssistant, config_entry):
     scan_interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     hub = ModbusGather(hass, slave, protocol, host, port, scan_interval)
+    hass.data[DOMAIN][DEVICES] = []
+    hass.data[DOMAIN][DEVICES].append("{}_{}".format(host, port))
     hass.data[config_entry.entry_id] = {}
     hass.data[config_entry.entry_id][MODBUS_HUB] = hub
     ident = "{}_{}_{}".format(
