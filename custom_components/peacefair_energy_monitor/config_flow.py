@@ -52,7 +52,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): vol.Coerce(int),
                 vol.Required(CONF_SLAVE, default=DEFAULT_SLAVE): vol.Coerce(int)
-            })
+            }),
+            errors={"base": error} if error else None
         )
 
     @staticmethod
