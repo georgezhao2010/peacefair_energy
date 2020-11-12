@@ -57,7 +57,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry):
 
     hub = ModbusGather(hass, slave, protocol, host, port, scan_interval)
     hass.data[DOMAIN][DEVICES] = []
-    hass.data[DOMAIN][DEVICES].append("{}_{}".format(host, port))
+    hass.data[DOMAIN][DEVICES].append("{}_{}_{}".format(host, port, slave))
     hass.data[config_entry.entry_id] = {}
     hass.data[config_entry.entry_id][MODBUS_HUB] = hub
     ident = "{}_{}_{}".format(

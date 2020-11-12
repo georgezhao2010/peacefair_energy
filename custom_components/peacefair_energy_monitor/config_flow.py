@@ -33,7 +33,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             if DOMAIN in self.hass.data and DEVICES in self.hass.data[DOMAIN] and \
-                    "{}_{}".format(user_input[CONF_HOST], user_input[CONF_PORT]) in \
+                    "{}_{}_{}".format(user_input[CONF_HOST], user_input[CONF_PORT], user_input[CONF_SLAVE]) in \
                     self.hass.data[DOMAIN][DEVICES]:
                 return await self.async_step_user(error="device_exist")
             else:
