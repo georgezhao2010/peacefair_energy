@@ -42,7 +42,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         user_input[CONF_HOST],
                         user_input[CONF_PORT],
                         user_input[CONF_SLAVE],
-                    ) ,
+                    ),
                     data=user_input)
 
         return self.async_show_form(

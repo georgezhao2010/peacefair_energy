@@ -106,7 +106,7 @@ class ModbusGather(ModbusHub, threading.Thread):
         if result is not None and type(result) is not ModbusIOException \
                 and result.registers is not None and len(result.registers) == 9:
             data = {}
-
+            cur_time = time.time()
             data[DEVICE_CLASS_VOLTAGE] = result.registers[0] / 10
             data[DEVICE_CLASS_CURRENT] = ((result.registers[2] << 16) + result.registers[1]) / 1000
             data[DEVICE_CLASS_POWER] = ((result.registers[4] << 16) + result.registers[3]) / 10
@@ -114,10 +114,8 @@ class ModbusGather(ModbusHub, threading.Thread):
             data[DEVICE_CLASS_FREQUENCY] = result.registers[7] / 10
             data[DEVICE_CLASS_POWER_FACTOR] = result.registers[8] / 100
             for sensor_type in HPG_SENSOR_TYPES:
-                if sensor_type in data:
-                    update_handle = self._updates[sensor_type]
-                    if update_handle is not None:
-                        update_handle(data[sensor_type])
+                if sensor_type in self._updates:
+                    self._updates[sensor_type](cur_time, data[sensor_type])
 
     def run(self):
         self.connect()
@@ -137,7 +135,6 @@ class ModbusGather(ModbusHub, threading.Thread):
 
     def stop_gather(self):
         self._run = False
-        threading.Thread.stop(self)
         threading.Thread.join(self)
 
     async def async_reset_energy(self):

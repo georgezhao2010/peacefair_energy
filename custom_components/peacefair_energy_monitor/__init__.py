@@ -79,7 +79,6 @@ async def async_setup_entry(hass: HomeAssistant, config_entry):
             None,
         )
         if energy_sensor is None:
-            _LOGGER.warning("entity is None???".format(energy_sensor))
             return
 
         if service.service == SERVICE_RESET_ENERGY:
@@ -92,7 +91,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry):
         DOMAIN,
         SERVICE_RESET_ENERGY,
         service_handle,
-        schema = RESET_ENERGY_SCHEMA,
+        schema=RESET_ENERGY_SCHEMA,
     )
 
     return True
@@ -113,8 +112,8 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):
     if energy_sensor is not None:
         hass.data[DOMAIN][ENERGY_SENSOR].pop(energy_sensor)
     unsub = hass.data[config_entry.entry_id][UN_SUBDISCRIPT]
-    if usub is not None:
-        usub()
-    hass.data[DOMAIN].pop(config_entry.entry_id)
+    if unsub is not None:
+        unsub()
+    hass.data.pop(config_entry.entry_id)
 
     return unload_ok
