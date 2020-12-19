@@ -110,7 +110,7 @@ class ModbusGather(ModbusHub, threading.Thread):
             data[DEVICE_CLASS_VOLTAGE] = result.registers[0] / 10
             data[DEVICE_CLASS_CURRENT] = ((result.registers[2] << 16) + result.registers[1]) / 1000
             data[DEVICE_CLASS_POWER] = ((result.registers[4] << 16) + result.registers[3]) / 10
-            data[DEVICE_CLASS_ENERGY] = (result.registers[6] << 16) + result.registers[5] / 1000
+            data[DEVICE_CLASS_ENERGY] = ((result.registers[6] << 16) + result.registers[5]) / 1000
             data[DEVICE_CLASS_FREQUENCY] = result.registers[7] / 10
             data[DEVICE_CLASS_POWER_FACTOR] = result.registers[8] / 100
             for sensor_type in HPG_SENSOR_TYPES:
