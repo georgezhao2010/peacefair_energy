@@ -54,6 +54,7 @@ class ModbusHub:
                 framer = ModbusRtuFramer,
                 timeout = 2,
                 retry_on_empty = True,
+                retry_on_invalid = False
             )
         elif (protocol == "rtuoverudp"):
             self._client = ModbusUdpClient(
@@ -61,7 +62,8 @@ class ModbusHub:
                 port = port,
                 framer = ModbusRtuFramer,
                 timeout = 2,
-                retry_on_empty = True,
+                retry_on_empty = False,
+                retry_on_invalid = False
             )
             
     def connect(self):

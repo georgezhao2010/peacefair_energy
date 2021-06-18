@@ -1,6 +1,7 @@
 {
   "domain": "peacefair_energy_monitor",
   "name": "Peacefair Energy Monitor",
+  "version": "0.6.2",
   "config_flow": true,
   "documentation": "https://github.com/georgezhao2010/peacefair_energy_monitor",
   "dependencies": [],
