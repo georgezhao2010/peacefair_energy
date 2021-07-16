@@ -1,4 +1,4 @@
-DOMAIN = "peacefair_energy_monitor"
+DOMAIN = "peacefair_energy"
 DEFAULT_SCAN_INTERVAL = 10
 DEFAULT_SLAVE = 1
 DEFAULT_PROTOCOL = "rtuoverudp"
