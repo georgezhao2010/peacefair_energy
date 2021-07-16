@@ -1,0 +1,18 @@
+{
+    "config": {
+        "error": {
+            "device_exist": "Device is already configured, choice another one"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "protocol": "Protocol",
+                    "host": "Host",
+                    "port": "Port",
+                    "slave": "Slave"
+                },
+                "title": "Add Device"
+            }
+        }
+    }
+}

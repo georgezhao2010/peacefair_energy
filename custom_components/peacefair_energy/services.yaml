@@ -1,0 +1,6 @@
+reset_energy:
+  description: Reset the energy.
+  fields:
+    entity_id:
+      description: Name of the entity to reset
+      example: "sensor.192_168_1_100_9000_energy"
