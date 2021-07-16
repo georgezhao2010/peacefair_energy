@@ -1,0 +1,5 @@
+{
+    "name": "Peacefair Energy Monitor",
+    "domains": ["sensor"],
+    "render_readme": true
+}
