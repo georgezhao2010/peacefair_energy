@@ -1,5 +1,9 @@
 # Peacefair Energy Monitor
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+
+[English](https://github.com/georgezhao2010/peacefair_energy/blob/main/README.md) | 简体中文
+
 使用培正PZEM-004T交流通讯盒进行用电信息采集的Home Assistant集成，支持Home Assistant 2021.8.X后新增的能源功能。
 
 支持通过ModbusRTU over UDP/TCP访问PZEM-004T，不支持串口访问方式。
@@ -108,4 +112,14 @@ PZEM-004T使用TTL进行通讯，但大老远的拉根USB-TTL线到HA主机，�
 如果你是国网北京电力的用户，可以使用[bj_sgcc_energy](https://github.com/georgezhao2010/bj_sgcc_energy)作为电费单价实体。
 不是国网北京电力的用户也没关系，可以使用本集成中的本月用电量、今年用电量，根据当地的用电收费政策，使用模版计算出用电单价来。
 ![IMG](https://user-images.githubusercontent.com/27534713/130241300-1307c9ff-0f10-47f0-bd62-c601a99a0cd9.png)
+
+
+# 调试
+要打开调试日志输出，在configuration.yaml中做如下配置
+```
+logger:
+  default: warn
+  logs:
+    custom_components.peacefair_energy: debug
+```
 
