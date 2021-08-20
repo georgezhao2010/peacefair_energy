@@ -86,14 +86,14 @@ PZEM-004T使用TTL进行通讯，但大老远的拉根USB-TTL线到HA主机，�
 统计信息包含以下传感器
 | 传感器名称 | 默认名称 |含义 |
 | ---- | ---- | ---- |
-| sensor.IP_day_real | Energy Consumption Today |今日耗电 |
-| sensor.IP_day_history | Energy Consumption Yesterday |昨日耗电 |
-| sensor.IP_week_real | Energy Consumption This Week |本周耗电 |
-| sensor.IP_week_history | Energy Consumption Last Week | 上周耗电 |
-| sensor.IP_month_real | Energy Consumption This Month | 本月耗电 |
-| sensor.IP_month_history | Energy Consumption Last Month | 上月耗电 |
-| sensor.IP_year_real | Energy Consumption This Year | 今年耗电 |
-| sensor.IP_year_history | Energy Consumption Last Year | 去年耗电 |
+| sensor.IP_day_real | Energy Consumption Today |今日用电量 |
+| sensor.IP_day_history | Energy Consumption Yesterday |昨日用电量 |
+| sensor.IP_week_real | Energy Consumption This Week |本周用电量 |
+| sensor.IP_week_history | Energy Consumption Last Week | 上周用电量 |
+| sensor.IP_month_real | Energy Consumption This Month | 本月用电量 |
+| sensor.IP_month_history | Energy Consumption Last Month | 上月用电量 |
+| sensor.IP_year_real | Energy Consumption This Year | 今年用电量 |
+| sensor.IP_year_history | Energy Consumption Last Year | 去年用电量 |
 
 
 ## 服务
@@ -125,4 +125,11 @@ logger:
   logs:
     custom_components.peacefair_energy: debug
 ```
+
+# 传感器信息显示
+以下为示例
+
+![IMG](https://user-images.githubusercontent.com/27534713/130247060-016a8cae-c51e-49ef-9ba5-8a200e835dc9.png)
+![IMG](https://user-images.githubusercontent.com/27534713/130249630-5546f8ad-8d98-46b9-8d98-9623dcfe1ff5.png)
+![IMG](https://user-images.githubusercontent.com/27534713/130247142-90c200d6-d2f5-4294-83bd-4e1b48031571.png)
 
