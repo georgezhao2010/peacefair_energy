@@ -40,7 +40,7 @@ HPG_SENSORS = {
     },
     DEVICE_CLASS_CURRENT: {
         "name": "Current",
-        "units": ELECTRIC_CURRENT_AMPERE,
+        "unit": ELECTRIC_CURRENT_AMPERE,
     },
     DEVICE_CLASS_POWER: {
         "name": "Power",
