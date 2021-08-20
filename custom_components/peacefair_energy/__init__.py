@@ -1,16 +1,19 @@
 import logging
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-
+import os
+from datetime import timedelta
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.core import HomeAssistant
 from .const import(
     DOMAIN,
-    MODBUS_HUB,
-    IDENT,
+    COORDINATOR,
     DEFAULT_SCAN_INTERVAL,
     ENERGY_SENSOR,
     UN_SUBDISCRIPT,
-    DEVICES
+    DEVICES,
+    PROTOCOLS,
+    STORAGE_PATH
 )
 
 from homeassistant.const import (
@@ -24,7 +27,7 @@ from homeassistant.const import (
 
 from homeassistant.const import ATTR_ENTITY_ID
 
-from .modbus import ModbusGather
+from .modbus import ModbusHub
 
 SERVICE_RESET_ENERGY = "reset_energy"
 
@@ -38,10 +41,9 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def update_listener(hass, config_entry):
-    hub = hass.data[config_entry.entry_id][MODBUS_HUB]
     scan_interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-    if hub is not None:
-        hub.set_interval(scan_interval)
+    coordinator = hass.data[config_entry.entry_id][COORDINATOR]
+    coordinator.update_interval = timedelta(seconds=scan_interval)
 
 
 async def async_setup(hass: HomeAssistant, hass_config: dict):
@@ -51,30 +53,24 @@ async def async_setup(hass: HomeAssistant, hass_config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, config_entry):
     config = config_entry.data
-    protocol = config[CONF_PROTOCOL]
+    protocol = PROTOCOLS[config[CONF_PROTOCOL]]
+    _LOGGER.debug(f"protocol={protocol}")
     host = config[CONF_HOST]
     port = config[CONF_PORT]
     slave = config[CONF_SLAVE]
     scan_interval = config_entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-
-    hub = ModbusGather(hass, slave, protocol, host, port, scan_interval)
     if DOMAIN not in hass.data:
         hass.data[DOMAIN] = {}
     if DEVICES not in hass.data[DOMAIN]:
         hass.data[DOMAIN][DEVICES] = []
     hass.data[DOMAIN][DEVICES].append(host)
-    hass.data[config_entry.entry_id] = {}
-    hass.data[config_entry.entry_id][MODBUS_HUB] = hub
-    ident = "{}_{}_{}".format(
-        host, port, slave
-    )
-    ident = ident.replace(".", "_")
-    hass.data[config_entry.entry_id][IDENT] = ident
-    hub.start_keep_alive()
-
+    if config_entry.entry_id not in hass.data:
+        hass.data[config_entry.entry_id] = {}
+    coordinator = PeacefairCoordinator(hass, protocol, host, port, slave, scan_interval)
+    hass.data[config_entry.entry_id][COORDINATOR] = coordinator
+    await coordinator.async_config_entry_first_refresh()
     hass.async_create_task(hass.config_entries.async_forward_entry_setup(
         config_entry, "sensor"))
-
     hass.data[config_entry.entry_id][UN_SUBDISCRIPT] = config_entry.add_update_listener(update_listener)
 
     def service_handle(service):
@@ -87,10 +83,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry):
             return
 
         if service.service == SERVICE_RESET_ENERGY:
-            entry_id = energy_sensor.get_entry_id()
-            mhub = hass.data[entry_id][MODBUS_HUB]
-            if mhub is not None:
-                hass.async_create_task(mhub.async_reset_energy())
+            coordinator = hass.data[config_entry.entry_id][COORDINATOR]
+            if coordinator is not None:
+                coordinator.reset_energy()
+                energy_sensor.reset()
 
     hass.services.async_register(
         DOMAIN,
@@ -106,12 +102,10 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):
 
     await hass.config_entries.async_forward_entry_unload(config_entry, "sensor")
 
-    hub = hass.data[config_entry.entry_id][MODBUS_HUB]
-    hub.stop_gather()
-    ident = hass.data[config_entry.entry_id][IDENT]
-    entity_id = "sensor.{}_{}".format(ident, DEVICE_CLASS_ENERGY)
+    host = config_entry.data[CONF_HOST]
+    host = host.replace(".", "_")
     energy_sensor = next(
-        (sensor for sensor in hass.data[DOMAIN][ENERGY_SENSOR] if sensor.entity_id == entity_id),
+        (sensor for sensor in hass.data[DOMAIN][ENERGY_SENSOR] if sensor.entity_id == f"{host}_{DEVICE_CLASS_ENERGY}"),
         None,
     )
     if energy_sensor is not None:
@@ -120,5 +114,48 @@ async def async_unload_entry(hass: HomeAssistant, config_entry):
     if unsub is not None:
         unsub()
     hass.data.pop(config_entry.entry_id)
-
+    storage_path = hass.config.path(f"{STORAGE_PATH}")
+    record_file = hass.config.path(f"{STORAGE_PATH}/{config_entry.entry_id}_state.json")
+    reset_file = hass.config.path(f"{STORAGE_PATH}/{DOMAIN}_reset.json")
+    if os.path.exists(record_file):
+        os.remove(record_file)
+    if os.path.exists(reset_file):
+        os.remove(reset_file)
+    if len(os.listdir(storage_path)) == 0:
+        os.rmdir(storage_path)
     return True
+
+
+class PeacefairCoordinator(DataUpdateCoordinator):
+    def __init__(self, hass, protocol, host, port, slave, scan_interval):
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=scan_interval)
+        )
+        self._updates = None
+        self._hass = hass
+        self._host = host
+        self._hub = ModbusHub(protocol, host, port, slave)
+
+    @property
+    def host(self):
+        return self._host
+
+    def reset_energy(self):
+        self._hub.reset_energy()
+        self.data[DEVICE_CLASS_ENERGY] = 0.0
+
+    def set_update(self, update):
+        self._updates = update
+
+    async def _async_update_data(self):
+        data = self.data if self.data is not None else {}
+        data_update = self._hub.info_gather()
+        if len(data_update) > 0:
+            data = data_update
+            _LOGGER.debug(f"Got Data {data}")
+            if self._updates is not None:
+                self._updates()
+        return data

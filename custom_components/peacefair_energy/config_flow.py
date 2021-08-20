@@ -9,7 +9,8 @@ from .const import (
     DEFAULT_PROTOCOL,
     DEFAULT_PORT,
     DEFAULT_SCAN_INTERVAL,
-    DEVICES
+    DEVICES,
+    PROTOCOLS
 )
 
 from homeassistant.const import (
@@ -19,11 +20,6 @@ from homeassistant.const import (
     CONF_PORT,
     CONF_SLAVE
 )
-
-PROTOCOLS = {
-    "rtuoverudp": "ModbusRTU Over UDP/IP",
-    "rtuovertcp": "ModbusRTU Over TCP/IP"
-}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,7 +36,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
-                vol.Required(CONF_PROTOCOL, default=DEFAULT_PROTOCOL): vol.In(PROTOCOLS),
+                vol.Required(CONF_PROTOCOL, default=DEFAULT_PROTOCOL): vol.In(PROTOCOLS.keys()),
                 vol.Required(CONF_HOST): str,
                 vol.Required(CONF_PORT, default=DEFAULT_PORT): vol.Coerce(int),
                 vol.Required(CONF_SLAVE, default=DEFAULT_SLAVE): vol.Coerce(int)
