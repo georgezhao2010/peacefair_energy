@@ -1,6 +1,14 @@
+# Peacefair Energy Monitor
+
+使用培正PZEM-004T交流通讯盒进行用电信息采集的Home Assistant集成，支持Home Assistant 2021.8.X后新增的能源功能。
+
+支持通过ModbusRTU over UDP/TCP访问PZEM-004T，不支持串口访问方式。
+
+
 # 警告
 
-以下操作仅适于有一定强电电路知识的人，涉及强电操作，注意人身安全。
+**以下操作仅适于有一定强电电路知识的人，涉及强电操作，注意人身安全。**
+
 
 # 硬件准备
 
@@ -17,15 +25,18 @@ PZEM-004T使用TTL进行通讯，但大老远的拉根USB-TTL线到HA主机，�
 
 如何配置透传模块，透传模块使用的端口、协议，要记清楚，后续配置要用。
 
+
 ## 接线图
 
 ![IMG](https://user-images.githubusercontent.com/27534713/130238853-da93f5c7-105d-4170-be55-89ed83e9f06f.png)
+
 
 ## 接线实拍
 
 照片中是拆掉了弱电箱的门，互感器直接套在入户主线的火线上，从插座的空开下接了一个带USB的小插座，用于给PZEM-004T提供220V/5V供电。看起来乱七八糟，外边挂一幅画就全挡住了。
 
 ![IMG](https://user-images.githubusercontent.com/27534713/130238749-2751d491-259b-4974-b838-0bdb550970da.jpg)
+
 
 # 集成安装
 
@@ -41,37 +52,42 @@ PZEM-004T使用TTL进行通讯，但大老远的拉根USB-TTL线到HA主机，�
 - 协议(TCP或UDP)
 - 模块从站地址(一般为1)
 
+
 ## 选项
 选项是采集间隔，默认为15秒钟采集一次，可根据需要自行调整。
+
 
 # 特性
 - 支持Home Assistant之后的能源面板
 - 自动记录日、周、月、年度的实时用电量
 - 提供昨日、上周、上月、去年的历史用电量
 
+
 ## 实时用电信息
 实时信息包含以下传感器
 | 传感器名称 | 默认名称 |含义 |
 | ---- | ---- | ---- |
-| sensor.{IP}_energy | Energy |总用电量 |
-| sensor.{IP}_voltage | Voltage |当前电压 |
-| sensor.{IP}_current | Current |当前电流 |
-| sensor.{IP}_power | Power |当前功率 |
-| sensor.{IP}_frequency | Power Frequency |交流频率 |
-| sensor.{IP}_power_factor | Power Factor |当前功率因数 |
+| sensor.IP_energy | Energy |总用电量 |
+| sensor.IP_voltage | Voltage |当前电压 |
+| sensor.IP_current | Current |当前电流 |
+| sensor.IP_power | Power |当前功率 |
+| sensor.IP_frequency | Power Frequency |交流频率 |
+| sensor.IP_power_factor | Power Factor |当前功率因数 |
+
 
 ## 统计信息
 统计信息包含以下传感器
 | 传感器名称 | 默认名称 |含义 |
 | ---- | ---- | ---- |
-| sensor.{IP}_day_real | Energy Consumption Today |今日耗电 |
-| sensor.{IP}_day_history | Energy Consumption Yesterday |昨日耗电 |
-| sensor.{IP}_week_real | Energy Consumption This Week |本周耗电 |
-| sensor.{IP}_week_history | Energy Consumption Last Week | 上周耗电 |
-| sensor.{IP}_month_real | Energy Consumption This Month | 本月耗电 |
-| sensor.{IP}_month_history | Energy Consumption Last Month | 上月耗电 |
-| sensor.{IP}_year_real | Energy Consumption This Year | 今年耗电 |
-| sensor.{IP}_year_history | Energy Consumption Last Year | 去年耗电 |
+| sensor.IP_day_real | Energy Consumption Today |今日耗电 |
+| sensor.IP_day_history | Energy Consumption Yesterday |昨日耗电 |
+| sensor.IP_week_real | Energy Consumption This Week |本周耗电 |
+| sensor.IP_week_history | Energy Consumption Last Week | 上周耗电 |
+| sensor.IP_month_real | Energy Consumption This Month | 本月耗电 |
+| sensor.IP_month_history | Energy Consumption Last Month | 上月耗电 |
+| sensor.IP_year_real | Energy Consumption This Year | 今年耗电 |
+| sensor.IP_year_history | Energy Consumption Last Year | 去年耗电 |
+
 
 ## 服务
 包含一个服务
@@ -82,9 +98,10 @@ PZEM-004T使用TTL进行通讯，但大老远的拉根USB-TTL线到HA主机，�
 
 | 参数 | 描述 | 示例 |
 | ---- | ---- | ---- |
-| entity_id | 要重置的总用电量实体 | sensor.{IP}_energy |
+| entity_id | 要重置的总用电量实体 | sensor.IP_energy |
 
-注意：重置总用电量不会影响各实时传感器及统计信息传感器的数值
+*注意：重置总用电量不会影响各实时传感器及统计信息传感器的数值*
+
 
 # Home Asssitant的能源
 在Home Assistant 2021.8.X中新增的能源功能，可以使用集成中的"总用电量"传感器作为能源消耗的统计依据。
