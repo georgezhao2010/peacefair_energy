@@ -93,7 +93,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     coordinator = hass.data[config_entry.entry_id][COORDINATOR]
     ident = coordinator.host.replace(".", "_")
     updates = {}
-    os.makedirs(STORAGE_PATH, exist_ok=True)
+    os.makedirs(hass.config.path(STORAGE_PATH), exist_ok=True)
     record_file = hass.config.path(f"{STORAGE_PATH}/{config_entry.entry_id}_state.json")
     reset_file = hass.config.path(f"{STORAGE_PATH}/{DOMAIN}_reset.json")
     json_data = load_json(record_file, default={})
