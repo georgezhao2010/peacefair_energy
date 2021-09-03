@@ -49,6 +49,7 @@ HPG_SENSORS = {
     DEVICE_CLASS_ENERGY: {
         "name": "Energy",
         "unit": ENERGY_KILO_WATT_HOUR,
+        "state_class": "total_increasing"
     },
     DEVICE_CLASS_POWER_FACTOR: {
         "name": "Power Factor",
@@ -261,7 +262,7 @@ class HPGSensor(CoordinatorEntity, HPGBaseSensor):
 
     @property
     def state_class(self):
-        return "measurement" if self._sensor_type == DEVICE_CLASS_ENERGY else None
+        return HPG_SENSORS[self._sensor_type].get("state_class")
 
     @property
     def capability_attributes(self):
