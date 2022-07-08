@@ -1,6 +1,6 @@
 # Peacefair Energy Monitor
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
 English | [简体中文](https://github.com/georgezhao2010/peacefair_energy/blob/main/README_Hans.md)
 
