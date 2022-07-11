@@ -42,6 +42,12 @@ PZEM-004T使用TTL进行通讯，但大老远的拉根USB-TTL线到HA主机，�
 ![IMG](https://user-images.githubusercontent.com/27534713/130238749-2751d491-259b-4974-b838-0bdb550970da.jpg)
 
 
+
+PZEM-004T的RX口和DT-06的TX口之间可以考虑串接1K左右电阻，防止PZEM-004T的RX灯常亮
+
+![IMG](https://user-images.githubusercontent.com/27534713/178296051-b32f95df-d317-4697-95ec-6b4754cbf30f.png)
+
+
 # 集成安装
 
 使用HACS自定义存储库安装，或者从[Latest release](https://github/georgezhao2010/peacefair_energy/release/latest)下载最新的Release版本，将其中的`custom_components/peacefair_energy`下所有文件放到`<Your Home Assistant Config Folder>/custom_components/peacefair_energy`中，重新启动Home Assistant。
