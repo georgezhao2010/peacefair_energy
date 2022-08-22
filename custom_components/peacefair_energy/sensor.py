@@ -32,19 +32,21 @@ import datetime
 _LOGGER = logging.getLogger(__name__)
 
 
-
 HPG_SENSORS = {
     DEVICE_CLASS_VOLTAGE: {
         "name": "Voltage",
         "unit": ELECTRIC_POTENTIAL_VOLT,
+        "state_class": "measurement"
     },
     DEVICE_CLASS_CURRENT: {
         "name": "Current",
         "unit": ELECTRIC_CURRENT_AMPERE,
+        "state_class": "measurement"
     },
     DEVICE_CLASS_POWER: {
         "name": "Power",
         "unit": POWER_WATT,
+        "state_class": "measurement"
     },
     DEVICE_CLASS_ENERGY: {
         "name": "Energy",
@@ -53,11 +55,13 @@ HPG_SENSORS = {
     },
     DEVICE_CLASS_POWER_FACTOR: {
         "name": "Power Factor",
+        "state_class": "measurement"
     },
     DEVICE_CLASS_FREQUENCY: {
         "name": "Power Frequency",
         "unit": FREQUENCY_HERTZ,
-        "icon": "hass:current-ac"
+        "icon": "hass:current-ac",
+        "state_class": "measurement"
     },
 }
 
@@ -84,10 +88,9 @@ HISTORIES = {
         "real_name": "Energy Consumption Today",
     }
 }
-
 ATTR_LAST_RESET: Final = "last_reset"
 ATTR_STATE_CLASS: Final = "state_class"
-STATE_CLASS_MEASUREMENT: Final = "measurement"
+
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
     sensors = []
@@ -102,6 +105,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
         state = STATE_UNKNOWN
         if len(json_data) > 0:
             state = json_data[history_type]["history_state"]
+        _LOGGER.debug(f"Load {history_type} history data {state}")
         h_sensor = HPGHistorySensor(history_type, DEVICE_CLASS_ENERGY, ident, state)
         sensors.append(h_sensor)
         state = STATE_UNKNOWN
@@ -168,6 +172,14 @@ class HPGBaseSensor(Entity):
     @property
     def icon(self):
         return HPG_SENSORS[self._sensor_type].get("icon")
+
+    @property
+    def state_class(self):
+        return HPG_SENSORS[self._sensor_type].get("state_class")
+
+    @property
+    def capability_attributes(self):
+        return {ATTR_STATE_CLASS: self.state_class} if self.state_class else {}
 
 
 class HPGHistorySensor(HPGBaseSensor):
@@ -259,14 +271,6 @@ class HPGSensor(CoordinatorEntity, HPGBaseSensor):
             for real_type in self._energy_updates:
                 json_data[real_type] = self._energy_updates[real_type](cur_time, self.state)
             save_json(self.hass.config.path(self._record_file), json_data)
-
-    @property
-    def state_class(self):
-        return HPG_SENSORS[self._sensor_type].get("state_class")
-
-    @property
-    def capability_attributes(self):
-        return {ATTR_STATE_CLASS: self.state_class} if self._sensor_type == DEVICE_CLASS_ENERGY else {}
 
     @property
     def last_reset(self):
