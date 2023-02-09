@@ -1,5 +1,5 @@
 import logging
-from pymodbus.client.sync import ModbusTcpClient, ModbusUdpClient
+from pymodbus.client import ModbusTcpClient, ModbusUdpClient
 from pymodbus.transaction import ModbusRtuFramer, ModbusIOException
 from pymodbus.pdu import ModbusRequest
 import threading
@@ -84,12 +84,12 @@ class ModbusHub:
 
     def read_input_registers(self, address, count):
         with self._lock:
-            kwargs = {"unit": self._slave}
+            kwargs = {"slave": self._slave}
             return self._client.read_input_registers(address, count, **kwargs)
 
     def reset_energy(self):
         with self._lock:
-            kwargs = {"unit": self._slave}
+            kwargs = {"slave": self._slave}
             request = ModbusResetEnergyRequest(**kwargs)
             self._client.execute(request)
 
