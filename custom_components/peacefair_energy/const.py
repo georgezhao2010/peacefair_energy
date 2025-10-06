@@ -8,10 +8,11 @@ ENERGY_SENSOR = "energy_sensor"
 UN_SUBDISCRIPT = "un_subdiscript"
 DEVICE_CLASS_FREQUENCY = "frequency"
 DEVICES = "devices"
-VERSION = "0.7.0"
+VERSION = "0.7.6"
 GATHER_TIME = "gather_time"
 PROTOCOLS = {
     "ModbusRTU Over UDP/IP": "rtuoverudp",
     "ModbusRTU Over TCP/IP": "rtuovertcp"
 }
+
 STORAGE_PATH = f".storage/{DOMAIN}"
