@@ -1,17 +1,40 @@
 {
     "config": {
         "error": {
-            "device_exist": "该设备已经存在，请配置其它设备"
+            "device_exist": "該設備已經存在，請配置其它設備"
         },
         "step": {
             "user": {
                 "data": {
-                    "protocol": "协议",
+                    "protocol": "協議",
                     "host": "地址",
                     "port": "端口",
-                    "slave": "从站编号"
+                    "slave": "從站編號"
                 },
-                "title": "添加新设备"
+                "title": "添加新設備"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "配置階梯電價與參數",
+                "data": {
+                    "scan_interval": "數據更新間隔 (秒)",
+                    "summer_months": "夏季月份 (例如: 5,6,7,8,9,10)",
+                    "summer_tier1_limit": "夏季一檔電量上限 (kWh)",
+                    "summer_tier2_limit": "夏季二檔電量上限 (kWh)",
+                    "non_summer_tier1_limit": "非夏季一檔電量上限 (kWh)",
+                    "non_summer_tier2_limit": "非夏季二檔電量上限 (kWh)",
+                    
+                    "summer_price_level_1": "夏季一檔電價 (CNY)",
+                    "summer_price_level_2": "夏季二檔電價 (CNY)",
+                    "summer_price_level_3": "夏季三檔電價 (CNY)",
+                    
+                    "non_summer_price_level_1": "非夏季一檔電價 (CNY)",
+                    "non_summer_price_level_2": "非夏季二檔電價 (CNY)",
+                    "non_summer_price_level_3": "非夏季三檔電價 (CNY)"
+                }
             }
         }
     }

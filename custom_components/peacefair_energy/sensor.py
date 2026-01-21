@@ -1,289 +1,347 @@
-from homeassistant.const import (
-    STATE_UNKNOWN,
-    DEVICE_CLASS_VOLTAGE,
-    DEVICE_CLASS_CURRENT,
-    DEVICE_CLASS_POWER,
-    DEVICE_CLASS_ENERGY,
-    DEVICE_CLASS_POWER_FACTOR,
-    ELECTRIC_POTENTIAL_VOLT,
-    ELECTRIC_CURRENT_AMPERE,
-    POWER_WATT,
-    ENERGY_KILO_WATT_HOUR,
-    FREQUENCY_HERTZ
+"""Peacefair Energy Monitor 的 Sensor 平台。"""
+import logging
+from datetime import datetime
+
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+    RestoreSensor,
 )
+from homeassistant.const import (
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfFrequency,
+    UnitOfPower,
+)
+from homeassistant.core import callback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+import homeassistant.util.dt as dt_util
 
 from .const import (
-    DOMAIN,
     COORDINATOR,
-    ENERGY_SENSOR,
-    DEVICE_CLASS_FREQUENCY,
+    DOMAIN,
+    POWER_FACTOR,
     VERSION,
-    STORAGE_PATH
+    CONF_SUMMER_MONTHS,
+    CONF_SUMMER_TIER1,
+    CONF_SUMMER_TIER2,
+    CONF_NON_SUMMER_TIER1,
+    CONF_NON_SUMMER_TIER2,
+    CONF_SUMMER_PRICE_L1,
+    CONF_SUMMER_PRICE_L2,
+    CONF_SUMMER_PRICE_L3,
+    CONF_NON_SUMMER_PRICE_L1,
+    CONF_NON_SUMMER_PRICE_L2,
+    CONF_NON_SUMMER_PRICE_L3,
+    DEFAULT_SUMMER_MONTHS,
+    DEFAULT_SUMMER_TIER1,
+    DEFAULT_SUMMER_TIER2,
+    DEFAULT_NON_SUMMER_TIER1,
+    DEFAULT_NON_SUMMER_TIER2,
+    DEFAULT_SUMMER_PRICE_L1,
+    DEFAULT_SUMMER_PRICE_L2,
+    DEFAULT_SUMMER_PRICE_L3,
+    DEFAULT_NON_SUMMER_PRICE_L1,
+    DEFAULT_NON_SUMMER_PRICE_L2,
+    DEFAULT_NON_SUMMER_PRICE_L3,
 )
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.entity import Entity
-from homeassistant.util.json import load_json
-from homeassistant.helpers.json import save_json
-from typing import final, Final
-import time
-import logging
-import os
-import datetime
 
 _LOGGER = logging.getLogger(__name__)
 
-
-HPG_SENSORS = {
-    DEVICE_CLASS_VOLTAGE: {
+# 基礎電氣參數傳感器定義
+SENSOR_TYPES = {
+    SensorDeviceClass.VOLTAGE: {
         "name": "Voltage",
-        "unit": ELECTRIC_POTENTIAL_VOLT,
-        "state_class": "measurement"
+        "unit": UnitOfElectricPotential.VOLT,
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:flash",
     },
-    DEVICE_CLASS_CURRENT: {
+    SensorDeviceClass.CURRENT: {
         "name": "Current",
-        "unit": ELECTRIC_CURRENT_AMPERE,
-        "state_class": "measurement"
+        "unit": UnitOfElectricCurrent.AMPERE,
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:current-ac",
     },
-    DEVICE_CLASS_POWER: {
+    SensorDeviceClass.POWER: {
         "name": "Power",
-        "unit": POWER_WATT,
-        "state_class": "measurement"
+        "unit": UnitOfPower.WATT,
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:power-plug",
     },
-    DEVICE_CLASS_ENERGY: {
+    SensorDeviceClass.ENERGY: {
         "name": "Energy",
-        "unit": ENERGY_KILO_WATT_HOUR,
-        "state_class": "total_increasing"
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+        "icon": "mdi:meter-electric",
     },
-    DEVICE_CLASS_POWER_FACTOR: {
+    SensorDeviceClass.FREQUENCY: {
+        "name": "Frequency",
+        "unit": UnitOfFrequency.HERTZ,
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:sine-wave",
+    },
+    POWER_FACTOR: {
         "name": "Power Factor",
-        "state_class": "measurement"
-    },
-    DEVICE_CLASS_FREQUENCY: {
-        "name": "Power Frequency",
-        "unit": FREQUENCY_HERTZ,
-        "icon": "hass:current-ac",
-        "state_class": "measurement"
+        "unit": None,
+        "state_class": SensorStateClass.MEASUREMENT,
+        "icon": "mdi:angle-acute",
+        "device_class": SensorDeviceClass.POWER_FACTOR,
     },
 }
-
-HISTORY_YEAR = "year"
-HISTORY_MONTH = "month"
-HISTORY_WEEK = "week"
-HISTORY_DAY = "day"
-
-HISTORIES = {
-    HISTORY_YEAR: {
-        "history_name": "Energy Consumption Last Year",
-        "real_name": "Energy Consumption This Year",
-    },
-    HISTORY_MONTH: {
-        "history_name": "Energy Consumption Last Month",
-        "real_name": "Energy Consumption This Month",
-    },
-    HISTORY_WEEK: {
-        "history_name": "Energy Consumption Last Week",
-        "real_name": "Energy Consumption This Week",
-    },
-    HISTORY_DAY:{
-        "history_name": "Energy Consumption Yesterday",
-        "real_name": "Energy Consumption Today",
-    }
-}
-ATTR_LAST_RESET: Final = "last_reset"
-ATTR_STATE_CLASS: Final = "state_class"
 
 
 async def async_setup_entry(hass, config_entry, async_add_entities):
-    sensors = []
-    coordinator = hass.data[config_entry.entry_id][COORDINATOR]
+    """設置傳感器平台。"""
+    coordinator = hass.data[DOMAIN][config_entry.entry_id][COORDINATOR]
     ident = coordinator.host.replace(".", "_")
-    updates = {}
-    os.makedirs(hass.config.path(STORAGE_PATH), exist_ok=True)
-    record_file = hass.config.path(f"{STORAGE_PATH}/{config_entry.entry_id}_state.json")
-    reset_file = hass.config.path(f"{STORAGE_PATH}/{DOMAIN}_reset.json")
-    json_data = load_json(record_file, default={})
-    for history_type in HISTORIES.keys():
-        state = STATE_UNKNOWN
-        if len(json_data) > 0:
-            state = json_data[history_type]["history_state"]
-        _LOGGER.debug(f"Load {history_type} history data {state}")
-        h_sensor = HPGHistorySensor(history_type, DEVICE_CLASS_ENERGY, ident, state)
-        sensors.append(h_sensor)
-        state = STATE_UNKNOWN
-        last_state = STATE_UNKNOWN
-        last_time = 0
-        if len(json_data) > 0:
-            state = json_data[history_type]["real_state"]
-            last_state = json_data["last_state"]
-            last_time = json_data["last_time"]
-        r_sensor = HPGRealSensor(history_type, DEVICE_CLASS_ENERGY, ident, h_sensor, state, last_state, last_time)
-        sensors.append(r_sensor)
-        updates[history_type] = r_sensor.update_state
-    json_data = load_json(reset_file, default={})
-    if len(json_data) > 0:
-        last_reset = json_data.get("last_reset")
-    else:
-        last_reset = 0
-    for sensor_type in HPG_SENSORS.keys():
-        sensor = HPGSensor(coordinator, config_entry.entry_id, sensor_type, ident, updates, last_reset)
-        sensors.append(sensor)
-        if sensor.device_class == sensor_type:
-            if ENERGY_SENSOR not in hass.data[DOMAIN]:
-                hass.data[DOMAIN][ENERGY_SENSOR] = []
-            hass.data[DOMAIN][ENERGY_SENSOR].append(sensor)
-    async_add_entities(sensors)
+    entities = []
+
+    # 1. 創建基礎電氣參數傳感器
+    for sensor_type in SENSOR_TYPES:
+        entities.append(PeacefairSensor(coordinator, sensor_type, ident))
+
+    # 2. 創建本月電量統計傳感器 (RestoreSensor)
+    monthly_sensor = PeacefairMonthlyEnergy(coordinator, ident, config_entry)
+    entities.append(monthly_sensor)
+
+    # 3. 創建階梯電價相關傳感器
+    entities.append(PeacefairLevelSensor(coordinator, ident, config_entry, monthly_sensor))
+    entities.append(PeacefairPriceSensor(coordinator, ident, config_entry, monthly_sensor))
+    entities.append(PeacefairCostSensor(coordinator, ident, config_entry, monthly_sensor))
+
+    async_add_entities(entities)
 
 
-class HPGBaseSensor(Entity):
-    def __init__(self, sensor_type, ident):
-        self._state = STATE_UNKNOWN
+class PeacefairSensor(CoordinatorEntity, SensorEntity):
+    """基礎 Peacefair 傳感器 (電壓、電流等)。"""
+
+    def __init__(self, coordinator, sensor_type, ident):
+        super().__init__(coordinator)
         self._sensor_type = sensor_type
-        self._device_info = {
-            "identifiers": {(DOMAIN, ident)},
+        self._ident = ident
+        sensor_info = SENSOR_TYPES[sensor_type]
+
+        self._attr_name = f"{ident} {sensor_info['name']}"
+        self._attr_unique_id = f"{DOMAIN}_{self._ident}_{self._sensor_type}"
+        self._attr_native_unit_of_measurement = sensor_info.get("unit")
+        self._attr_state_class = sensor_info.get("state_class")
+        self._attr_icon = sensor_info.get("icon")
+        self._attr_device_class = sensor_info.get("device_class", self._sensor_type)
+
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, self._ident)},
+            "name": f"Peacefair Energy Monitor {self._ident}",
             "manufacturer": "Peacefair",
             "model": "PZEM-004T",
             "sw_version": VERSION,
-            "name": "Peacefair Energy Monitor"
         }
 
     @property
-    def state(self):
-        return STATE_UNKNOWN if self._state == STATE_UNKNOWN else round(self._state, 2)
+    def native_value(self):
+        if self.coordinator.data:
+            return self.coordinator.data.get(self._sensor_type)
+        return None
 
     @property
-    def should_poll(self):
-        return False
-
-    @property
-    def device_info(self):
-        return self._device_info
-
-    @property
-    def device_class(self):
-        return self._sensor_type
-
-    @property
-    def unique_id(self):
-        return self._unique_id
-
-    @property
-    def unit_of_measurement(self):
-        return HPG_SENSORS[self._sensor_type].get("unit")
-
-    @property
-    def icon(self):
-        return HPG_SENSORS[self._sensor_type].get("icon")
-
-    @property
-    def state_class(self):
-        return HPG_SENSORS[self._sensor_type].get("state_class")
-
-    @property
-    def capability_attributes(self):
-        return {ATTR_STATE_CLASS: self.state_class} if self.state_class else {}
+    def available(self) -> bool:
+        return super().available and self.coordinator.data is not None
 
 
-class HPGHistorySensor(HPGBaseSensor):
-    def __init__(self, history_type, sensor_type, ident, state):
-        super().__init__(sensor_type, ident)
-        self._unique_id = f"{DOMAIN}.{ident}_{history_type}_history"
-        self.entity_id = self._unique_id
-        self._history_type = history_type
-        self._state = state
+class PeacefairMonthlyEnergy(CoordinatorEntity, RestoreSensor):
+    """計算本月用電量的傳感器。"""
 
-    @property
-    def name(self):
-        return HISTORIES[self._history_type].get("history_name")
-
-    def update_state(self, state):
-        self._state = state
-        self.schedule_update_ha_state()
-
-
-class HPGRealSensor(HPGBaseSensor):
-    def __init__(self, history_type, sensor_type, ident, history_sensor, state, last_state, last_time):
-        super().__init__(sensor_type, ident)
-        self._unique_id = f"{DOMAIN}.{ident}_{history_type}_real"
-        self.entity_id = self._unique_id
-        self._history_sensor = history_sensor
-        self._history_type = history_type
-        self._last_state = last_state
-        self._last_time = last_time
-        self._state = state
-
-    @property
-    def name(self):
-        return HISTORIES[self._history_type].get("real_name")
-
-    def update_state(self, cur_time, state):
-        if state!= STATE_UNKNOWN and self._last_state != STATE_UNKNOWN:
-            differ = state
-            last_time = time.localtime(self._last_time)
-            current_time = time.localtime(cur_time)
-            if state >= self._last_state:
-                differ = round(state - self._last_state, 3)
-            if (self._history_type == HISTORY_DAY and last_time.tm_mday != current_time.tm_mday) \
-                    or (self._history_type == HISTORY_WEEK and last_time.tm_wday != current_time.tm_wday and current_time.tm_wday == 0) \
-                    or (self._history_type == HISTORY_MONTH and last_time.tm_mon != current_time.tm_mon)\
-                    or (self._history_type == HISTORY_YEAR and last_time.tm_year != current_time.tm_year):
-                self._history_sensor.update_state(self._state)
-                self._state = differ
-            elif self._state == STATE_UNKNOWN:
-                self._state = differ
-            else:
-                self._state = self._state + differ
-        self._last_time = cur_time
-        self._last_state = state
-        self.schedule_update_ha_state()
-        return {
-            "history_state": self._history_sensor._state,
-            "real_state": self._state
-        }
-
-
-class HPGSensor(CoordinatorEntity, HPGBaseSensor):
-    def __init__(self, coordinator, entry_id, sensor_type, ident, energy_updates, last_reset):
+    def __init__(self, coordinator, ident, config_entry):
         super().__init__(coordinator)
-        HPGBaseSensor.__init__(self, sensor_type, ident)
-        self._unique_id = f"{DOMAIN}.{ident}_{sensor_type}"
-        self.entity_id = self._unique_id
-        self._energy_updates = energy_updates
-        self._last_reset = datetime.datetime.fromtimestamp(last_reset)
-        self._record_file = f"{STORAGE_PATH}/{entry_id}_state.json"
-        self._reset_file = f"{STORAGE_PATH}/{entry_id}_reset.json"
-        if self._sensor_type == DEVICE_CLASS_ENERGY:
-            coordinator.set_update(self.update_state)
+        self._ident = ident
+        self._attr_name = f"{ident} Monthly Energy"
+        self._attr_unique_id = f"{DOMAIN}_{ident}_month_real"
+        self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_device_class = SensorDeviceClass.ENERGY
+        self._attr_icon = "mdi:calendar-month"
+        
+        self._start_energy = None
+        self._last_reset_month = None
+
+    async def async_added_to_hass(self):
+        await super().async_added_to_hass()
+        state = await self.async_get_last_state()
+        if state:
+            self._start_energy = state.attributes.get("start_energy")
+            self._last_reset_month = state.attributes.get("last_reset_month")
+            
+            if self._start_energy is not None and self.native_value is None:
+                try:
+                    self._attr_native_value = float(state.state)
+                except (ValueError, TypeError):
+                    pass
 
     @property
-    def state(self):
-        if self._sensor_type in self.coordinator.data:
-            return round(self.coordinator.data[self._sensor_type], 2)
+    def extra_state_attributes(self):
+        return {
+            "start_energy": self._start_energy,
+            "last_reset_month": self._last_reset_month,
+        }
+
+    @property
+    def native_value(self):
+        current_total = self.coordinator.data.get(SensorDeviceClass.ENERGY) if self.coordinator.data else None
+        
+        if current_total is None:
+            return self._attr_native_value
+
+        now = dt_util.now()
+        current_month = now.month
+
+        if self._start_energy is None or self._last_reset_month is None:
+            self._start_energy = current_total
+            self._last_reset_month = current_month
+            return 0.0
+
+        if self._last_reset_month != current_month:
+            self._start_energy = current_total
+            self._last_reset_month = current_month
+            return 0.0
+
+        monthly_usage = current_total - self._start_energy
+        if monthly_usage < 0:
+            self._start_energy = current_total
+            return 0.0
+
+        return round(monthly_usage, 3)
+
+
+class PeacefairCalculatedSensor(CoordinatorEntity, SensorEntity):
+    """階梯電價相關傳感器的基類。"""
+    
+    def __init__(self, coordinator, ident, config_entry, monthly_sensor):
+        super().__init__(coordinator)
+        self._ident = ident
+        self._config_entry = config_entry
+        self._monthly_sensor = monthly_sensor
+        
+    @property
+    def _current_month_energy(self):
+        val = self._monthly_sensor.native_value
+        try:
+            return float(val) if val is not None else 0.0
+        except (ValueError, TypeError):
+            return 0.0
+
+    @property
+    def _options(self):
+        return self._config_entry.options
+
+    def _get_season_config(self):
+        """獲取當前季節的配置 (額度與價格)。"""
+        now = dt_util.now()
+        summer_months_str = self._options.get(CONF_SUMMER_MONTHS, DEFAULT_SUMMER_MONTHS)
+        try:
+            summer_months = [int(x.strip()) for x in summer_months_str.split(",")]
+        except ValueError:
+            summer_months = [5, 6, 7, 8, 9, 10]
+
+        is_summer = now.month in summer_months
+        
+        if is_summer:
+            limits = (
+                self._options.get(CONF_SUMMER_TIER1, DEFAULT_SUMMER_TIER1),
+                self._options.get(CONF_SUMMER_TIER2, DEFAULT_SUMMER_TIER2)
+            )
+            prices = (
+                self._options.get(CONF_SUMMER_PRICE_L1, DEFAULT_SUMMER_PRICE_L1),
+                self._options.get(CONF_SUMMER_PRICE_L2, DEFAULT_SUMMER_PRICE_L2),
+                self._options.get(CONF_SUMMER_PRICE_L3, DEFAULT_SUMMER_PRICE_L3)
+            )
         else:
-            return STATE_UNKNOWN
+            limits = (
+                self._options.get(CONF_NON_SUMMER_TIER1, DEFAULT_NON_SUMMER_TIER1),
+                self._options.get(CONF_NON_SUMMER_TIER2, DEFAULT_NON_SUMMER_TIER2)
+            )
+            prices = (
+                self._options.get(CONF_NON_SUMMER_PRICE_L1, DEFAULT_NON_SUMMER_PRICE_L1),
+                self._options.get(CONF_NON_SUMMER_PRICE_L2, DEFAULT_NON_SUMMER_PRICE_L2),
+                self._options.get(CONF_NON_SUMMER_PRICE_L3, DEFAULT_NON_SUMMER_PRICE_L3)
+            )
+            
+        return limits, prices
+
+    def _get_current_level(self):
+        monthly_energy = self._current_month_energy
+        limits, _ = self._get_season_config()
+        limit1, limit2 = limits
+
+        if monthly_energy <= limit1:
+            return 1
+        elif monthly_energy <= limit2:
+            return 2
+        else:
+            return 3
+
+
+class PeacefairLevelSensor(PeacefairCalculatedSensor):
+    """顯示當前用電階梯等級 (1, 2, 3)。"""
+
+    def __init__(self, coordinator, ident, config_entry, monthly_sensor):
+        super().__init__(coordinator, ident, config_entry, monthly_sensor)
+        self._attr_name = f"{ident} Electricity Level"
+        self._attr_unique_id = f"{DOMAIN}_{ident}_electricity_level"
+        self._attr_native_unit_of_measurement = "Level"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:elevation-rise"
 
     @property
-    def name(self):
-        return HPG_SENSORS[self._sensor_type].get("name")
+    def native_value(self):
+        return self._get_current_level()
 
-    def update_state(self):
-        cur_time = time.time()
-        json_data = {"last_time": cur_time, "last_state": self.state}
-        if self._energy_updates is not None:
-            for real_type in self._energy_updates:
-                json_data[real_type] = self._energy_updates[real_type](cur_time, self.state)
-            save_json(self.hass.config.path(self._record_file), json_data)
+
+class PeacefairPriceSensor(PeacefairCalculatedSensor):
+    """顯示當前實時電價 (CNY/kWh)。"""
+
+    def __init__(self, coordinator, ident, config_entry, monthly_sensor):
+        super().__init__(coordinator, ident, config_entry, monthly_sensor)
+        self._attr_name = f"{ident} Current Price"
+        self._attr_unique_id = f"{DOMAIN}_{ident}_current_price"
+        self._attr_native_unit_of_measurement = "CNY/kWh"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_icon = "mdi:currency-cny"
 
     @property
-    def last_reset(self):
-        return self._last_reset if self._sensor_type == DEVICE_CLASS_ENERGY else None
+    def native_value(self):
+        level = self._get_current_level()
+        _, prices = self._get_season_config()
+        
+        # prices 是 (Level 1, Level 2, Level 3)
+        return prices[level - 1]
 
-    @final
+
+class PeacefairCostSensor(PeacefairCalculatedSensor):
+    """顯示本月累計電費 (CNY)，基於階梯電價計算。"""
+
+    def __init__(self, coordinator, ident, config_entry, monthly_sensor):
+        super().__init__(coordinator, ident, config_entry, monthly_sensor)
+        self._attr_name = f"{ident} Current Month Cost"
+        self._attr_unique_id = f"{DOMAIN}_{ident}_current_month_cost"
+        self._attr_native_unit_of_measurement = "CNY"
+        self._attr_state_class = SensorStateClass.TOTAL
+        self._attr_device_class = SensorDeviceClass.MONETARY
+        self._attr_icon = "mdi:cash"
+
     @property
-    def state_attributes(self):
-        return {ATTR_LAST_RESET: self.last_reset.isoformat()} if self._sensor_type == DEVICE_CLASS_ENERGY else {}
-
-    def reset(self):
-        self._last_reset = datetime.datetime.now()
-        json_data = {"last_reset": self._last_reset.timestamp()}
-        _LOGGER.debug(f"Energy reset")
-        save_json(self.hass.config.path(self._reset_file), json_data)
+    def native_value(self):
+        energy = self._current_month_energy
+        limits, prices = self._get_season_config()
+        limit1, limit2 = limits
+        price1, price2, price3 = prices
+        
+        # 階梯計費邏輯
+        if energy <= limit1:
+            total_cost = energy * price1
+        elif energy <= limit2:
+            total_cost = (limit1 * price1) + ((energy - limit1) * price2)
+        else:
+            total_cost = (limit1 * price1) + ((limit2 - limit1) * price2) + ((energy - limit2) * price3)
+            
+        return round(total_cost, 2)

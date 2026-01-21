@@ -1,8 +1,12 @@
 # Peacefair Energy Monitor
 
+支持Hass 2025.12.X后版本。
+
+#### [HACS (**点击这里安装**)](https://my.home-assistant.io/redirect/hacs_repository/?owner=gnowmil&repository=peacefair_energy&category=integration)
+
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
 
-[English](https://github.com/georgezhao2010/peacefair_energy/blob/main/README.md) | 简体中文
+[English](https://github.com/gnowmil/peacefair_energy/blob/main/README.md) | 简体中文
 
 使用培正PZEM-004T交流通讯盒进行用电信息采集的Home Assistant集成，支持Home Assistant 2021.8.X后新增的能源功能。
 
@@ -50,7 +54,7 @@ PZEM-004T的RX口和DT-06的TX口之间可以考虑串接1K左右电阻，防止
 
 # 集成安装
 
-使用HACS自定义存储库安装，或者从[Latest release](https://github/georgezhao2010/peacefair_energy/release/latest)下载最新的Release版本，将其中的`custom_components/peacefair_energy`下所有文件放到`<Your Home Assistant Config Folder>/custom_components/peacefair_energy`中，重新启动Home Assistant。
+使用HACS自定义存储库安装，或者从[Latest release](https://github/gnowmil/peacefair_energy/release/latest)下载最新的Release版本，将其中的`custom_components/peacefair_energy`下所有文件放到`<Your Home Assistant Config Folder>/custom_components/peacefair_energy`中，重新启动Home Assistant。
 
 
 # 配置

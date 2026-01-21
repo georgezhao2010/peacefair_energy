@@ -1,7 +1,7 @@
 {
     "config": {
         "error": {
-            "device_exist": "Device is already configured, choice another one"
+            "device_exist": "Device is already configured, choose another one"
         },
         "step": {
             "user": {
@@ -12,6 +12,29 @@
                     "slave": "Slave"
                 },
                 "title": "Add Device"
+            }
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Tiered Pricing Configuration",
+                "data": {
+                    "scan_interval": "Update Interval (seconds)",
+                    "summer_months": "Summer Months (e.g. 5,6,7,8,9,10)",
+                    "summer_tier1_limit": "Summer Tier 1 Limit (kWh)",
+                    "summer_tier2_limit": "Summer Tier 2 Limit (kWh)",
+                    "non_summer_tier1_limit": "Non-Summer Tier 1 Limit (kWh)",
+                    "non_summer_tier2_limit": "Non-Summer Tier 2 Limit (kWh)",
+                    
+                    "summer_price_level_1": "Summer Level 1 Price (CNY)",
+                    "summer_price_level_2": "Summer Level 2 Price (CNY)",
+                    "summer_price_level_3": "Summer Level 3 Price (CNY)",
+                    
+                    "non_summer_price_level_1": "Non-Summer Level 1 Price (CNY)",
+                    "non_summer_price_level_2": "Non-Summer Level 2 Price (CNY)",
+                    "non_summer_price_level_3": "Non-Summer Level 3 Price (CNY)"
+                }
             }
         }
     }
