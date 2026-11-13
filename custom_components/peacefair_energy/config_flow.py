@@ -89,22 +89,18 @@ class PeacefairConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @callback
     def async_get_options_flow(config_entry):
         """獲取選項流程處理器。"""
-        return OptionsFlowHandler(config_entry)
+        return OptionsFlowHandler()
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """處理 Peacefair 集成的選項。"""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry):
-        """初始化選項流程。"""
-        self._config_entry = config_entry
 
     async def async_step_init(self, user_input=None):
         """管理選項。"""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        options = self._config_entry.options
+        options = self.config_entry.options
         scan_interval = options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
         
         summer_months = options.get(CONF_SUMMER_MONTHS, DEFAULT_SUMMER_MONTHS)

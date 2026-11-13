@@ -5,14 +5,13 @@ Peacefair Energy Monitor 自定義組件。
 此文件已根據 Home Assistant 2025.x 開發規範進行了現代化適配。
 """
 import logging
-import os
 from datetime import timedelta
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.const import (
     ATTR_ENTITY_ID,
     CONF_HOST,
@@ -29,7 +28,6 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     PROTOCOLS,
-    STORAGE_PATH,
     UNSUBSCRIBE_LISTENER,
 )
 from .modbus import ModbusHub
@@ -67,7 +65,7 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     scan_interval = options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     # 創建協調器來管理此設備的數據更新。
-    coordinator = PeacefairCoordinator(hass, protocol, host, port, slave, scan_interval)
+    coordinator = PeacefairCoordinator(hass, config_entry, protocol, host, port, slave, scan_interval)
 
     # 將與此配置條目相關的所有數據存儲在專用字典中
     hass.data[DOMAIN][config_entry.entry_id] = {
@@ -85,10 +83,10 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> b
     hass.data[DOMAIN][config_entry.entry_id][UNSUBSCRIBE_LISTENER] = unsub
 
     # --- 註冊重置電量服務 ---
-    def service_handle(service):
+    async def service_handle(service):
         """處理 'reset_energy' 服務調用。"""
         _LOGGER.debug(f"處理重置電量服務調用，目標實體: {service.data.get(ATTR_ENTITY_ID)}")
-        coordinator.reset_energy()
+        await hass.async_add_executor_job(coordinator.reset_energy)
 
     # 檢查服務是否已註冊，避免重複註冊警告
     if not hass.services.has_service(DOMAIN, SERVICE_RESET_ENERGY):
@@ -117,25 +115,6 @@ async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> 
         if not hass.data[DOMAIN]:
             hass.data.pop(DOMAIN)
 
-        # 清理文件操作 (保持同步執行以避免複雜性，但捕獲異常)
-        def do_blocking_file_operations():
-            """執行同步文件刪除操作。"""
-            try:
-                storage_path = hass.config.path(STORAGE_PATH)
-                record_file = hass.config.path(f"{STORAGE_PATH}/{config_entry.entry_id}_state.json")
-                reset_file = hass.config.path(f"{STORAGE_PATH}/{DOMAIN}_reset.json")
-                
-                if os.path.exists(record_file):
-                    os.remove(record_file)
-                if os.path.exists(reset_file):
-                    os.remove(reset_file)
-                if os.path.exists(storage_path) and not os.listdir(storage_path):
-                    os.rmdir(storage_path)
-            except Exception as e:
-                _LOGGER.warning(f"清理文件時發生錯誤: {e}")
-
-        await hass.async_add_executor_job(do_blocking_file_operations)
-
     return ok
 
 
@@ -152,12 +131,14 @@ async def update_listener(hass: HomeAssistant, config_entry: ConfigEntry):
 class PeacefairCoordinator(DataUpdateCoordinator):
     """用於管理 Peacefair 設備數據獲取和輪詢的類。"""
 
-    def __init__(self, hass, protocol, host, port, slave, scan_interval):
+    def __init__(self, hass, config_entry, protocol, host, port, slave, scan_interval):
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN} ({host})",
             update_interval=timedelta(seconds=scan_interval),
+            config_entry=config_entry,
+            always_update=False,
         )
         self._hass = hass
         self._host = host
@@ -180,8 +161,10 @@ class PeacefairCoordinator(DataUpdateCoordinator):
             if data_update:
                 return data_update
             
-            _LOGGER.warning(f"無法從 {self._host} 獲取數據，返回空數據。")
-            return self.data if self.data else {}
+            _LOGGER.warning(f"無法從 {self._host} 獲取數據。")
+            raise UpdateFailed(f"無法從 {self._host} 獲取數據")
+        except UpdateFailed:
+            raise
         except Exception as err:
             _LOGGER.error(f"設備 {self._host} 更新數據時出錯: {err}")
-            return self.data if self.data else {}
+            raise UpdateFailed(f"設備 {self._host} 更新數據時出錯: {err}") from err

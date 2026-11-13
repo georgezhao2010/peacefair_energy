@@ -1,5 +1,6 @@
 {
     "name": "Peacefair Energy Monitor",
     "domains": ["sensor"],
-    "render_readme": true
+    "render_readme": true,
+    "min_ha_version": "2025.12.0"
 }

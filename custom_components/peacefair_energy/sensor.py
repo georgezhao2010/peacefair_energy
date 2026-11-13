@@ -50,6 +50,8 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+PARALLEL_UPDATES = 0
+
 # 基礎電氣參數傳感器定義
 SENSOR_TYPES = {
     SensorDeviceClass.VOLTAGE: {
@@ -123,7 +125,8 @@ class PeacefairSensor(CoordinatorEntity, SensorEntity):
         self._ident = ident
         sensor_info = SENSOR_TYPES[sensor_type]
 
-        self._attr_name = f"{ident} {sensor_info['name']}"
+        self._attr_name = sensor_info["name"]
+        self._attr_has_entity_name = True
         self._attr_unique_id = f"{DOMAIN}_{self._ident}_{self._sensor_type}"
         self._attr_native_unit_of_measurement = sensor_info.get("unit")
         self._attr_state_class = sensor_info.get("state_class")
@@ -155,7 +158,8 @@ class PeacefairMonthlyEnergy(CoordinatorEntity, RestoreSensor):
     def __init__(self, coordinator, ident, config_entry):
         super().__init__(coordinator)
         self._ident = ident
-        self._attr_name = f"{ident} Monthly Energy"
+        self._attr_name = "Monthly Energy"
+        self._attr_has_entity_name = True
         self._attr_unique_id = f"{DOMAIN}_{ident}_month_real"
         self._attr_native_unit_of_measurement = UnitOfEnergy.KILO_WATT_HOUR
         self._attr_state_class = SensorStateClass.TOTAL
@@ -286,7 +290,8 @@ class PeacefairLevelSensor(PeacefairCalculatedSensor):
 
     def __init__(self, coordinator, ident, config_entry, monthly_sensor):
         super().__init__(coordinator, ident, config_entry, monthly_sensor)
-        self._attr_name = f"{ident} Electricity Level"
+        self._attr_name = "Electricity Level"
+        self._attr_has_entity_name = True
         self._attr_unique_id = f"{DOMAIN}_{ident}_electricity_level"
         self._attr_native_unit_of_measurement = "Level"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -302,7 +307,8 @@ class PeacefairPriceSensor(PeacefairCalculatedSensor):
 
     def __init__(self, coordinator, ident, config_entry, monthly_sensor):
         super().__init__(coordinator, ident, config_entry, monthly_sensor)
-        self._attr_name = f"{ident} Current Price"
+        self._attr_name = "Current Price"
+        self._attr_has_entity_name = True
         self._attr_unique_id = f"{DOMAIN}_{ident}_current_price"
         self._attr_native_unit_of_measurement = "CNY/kWh"
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -322,7 +328,8 @@ class PeacefairCostSensor(PeacefairCalculatedSensor):
 
     def __init__(self, coordinator, ident, config_entry, monthly_sensor):
         super().__init__(coordinator, ident, config_entry, monthly_sensor)
-        self._attr_name = f"{ident} Current Month Cost"
+        self._attr_name = "Current Month Cost"
+        self._attr_has_entity_name = True
         self._attr_unique_id = f"{DOMAIN}_{ident}_current_month_cost"
         self._attr_native_unit_of_measurement = "CNY"
         self._attr_state_class = SensorStateClass.TOTAL

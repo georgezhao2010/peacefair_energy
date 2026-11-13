@@ -1,7 +1,7 @@
 """Peacefair Energy Monitor 集成的常量。"""
 
 DOMAIN = "peacefair_energy"
-VERSION = "0.9.2"
+VERSION = "0.9.3"
 
 # --- 字典鍵的本地常量 ---
 POWER_FACTOR = "power_factor"
@@ -58,9 +58,6 @@ PROTOCOLS = {
     "ModbusRTU Over UDP/IP": "rtuoverudp",
     "ModbusRTU Over TCP/IP": "rtuovertcp",
 }
-
-# --- 存儲路徑 ---
-STORAGE_PATH = f".storage/{DOMAIN}"
 
 # --- 其他常量 ---
 DEVICE_CLASS_FREQUENCY = "frequency"
