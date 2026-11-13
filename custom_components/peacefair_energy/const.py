@@ -1,7 +1,7 @@
 """Peacefair Energy Monitor 集成的常量。"""
 
 DOMAIN = "peacefair_energy"
-VERSION = "0.9.3"
+VERSION = "0.9.4"
 
 # --- 字典鍵的本地常量 ---
 POWER_FACTOR = "power_factor"

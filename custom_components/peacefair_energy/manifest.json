@@ -1,7 +1,7 @@
 {
   "domain": "peacefair_energy",
   "name": "Peacefair Energy Monitor",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "config_flow": true,
   "documentation": "https://github.com/gnowmil/peacefair_energy",
   "issue_tracker": "https://github.com/gnowmil/peacefair_energy/issues",

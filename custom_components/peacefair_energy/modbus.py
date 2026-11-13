@@ -40,7 +40,6 @@ class ModbusHub:
         self._host = host
         self._port = int(port)
         self._client = None
-        self._param_name = None  # 用於緩存正確的參數名稱 ('slave' 或 'unit')
         
         _LOGGER.debug(f"Pymodbus 版本: {pymodbus.__version__}")
         _LOGGER.debug(f"正在初始化 ModbusHub: {protocol}://{host}:{port}, slave={slave}")
@@ -63,76 +62,15 @@ class ModbusHub:
     def read_input_registers(self, address: int, count: int):
         """
         從設備讀取輸入寄存器。
-        自動適配 pymodbus 的參數名稱 (slave vs unit)。
+        pymodbus 3.13 起參數名為 device_id（slave/unit 已移除）。
         """
-        # 如果已經知道正確的參數名稱，直接使用
-        if self._param_name == 'slave':
-            return self._client.read_input_registers(address, count=count, slave=self._device_id)
-        elif self._param_name == 'unit':
-            return self._client.read_input_registers(address, count=count, unit=self._device_id)
-        elif self._param_name == '': # 已確認無參數可用
-            return self._client.read_input_registers(address, count=count)
-
-        # 尚未確定參數，嘗試測試
-        return self._test_and_read(address, count)
-
-    def _test_and_read(self, address, count):
-        """通過試錯法確定正確的參數名稱。"""
-        
-        # 1. 嘗試 'slave' (新版 pymodbus 標準)
-        try:
-            # 注意: 如果這裡拋出 TypeError 以外的錯誤 (如 ModbusIOException)，說明參數名稱是正確的，只是通訊失敗
-            res = self._client.read_input_registers(address, count=count, slave=self._device_id)
-            self._param_name = 'slave'
-            _LOGGER.debug("已檢測到 pymodbus 參數名稱: slave")
-            return res
-        except TypeError as e:
-            if "unexpected keyword argument" not in str(e):
-                raise e # 如果不是參數錯誤，則拋出異常
-
-        # 2. 嘗試 'unit' (舊版 pymodbus 標準)
-        try:
-            res = self._client.read_input_registers(address, count=count, unit=self._device_id)
-            self._param_name = 'unit'
-            _LOGGER.debug("已檢測到 pymodbus 參數名稱: unit")
-            return res
-        except TypeError as e:
-            if "unexpected keyword argument" not in str(e):
-                raise e
-
-        # 3. 都失敗，嘗試不帶參數 (依賴默認值)
-        _LOGGER.warning("無法確定 read_input_registers 的 slave/unit 參數名稱，將使用默認值進行讀取。")
-        self._param_name = '' # 標記為空
-        return self._client.read_input_registers(address, count=count)
+        return self._client.read_input_registers(address, count=count, device_id=self._device_id)
 
     def reset_energy(self):
         """發送重置電量命令。"""
-        # 嘗試構造請求，分別測試 slave 和 unit
-        request = None
-        
-        # 優先嘗試與 read_input_registers 一致的參數
-        if self._param_name == 'slave':
-             try:
-                 request = ModbusResetEnergyRequest(slave=self._device_id)
-             except TypeError: pass
-        elif self._param_name == 'unit':
-             try:
-                 request = ModbusResetEnergyRequest(unit=self._device_id)
-             except TypeError: pass
-
-        # 如果上面沒成功或沒緩存，進行試錯
-        if not request:
-            try:
-                request = ModbusResetEnergyRequest(slave=self._device_id)
-            except TypeError:
-                try:
-                    request = ModbusResetEnergyRequest(unit=self._device_id)
-                except TypeError:
-                    # 如果都不行，嘗試無參數（依賴默認值）
-                    request = ModbusResetEnergyRequest()
-        
-        if request:
-            self._client.execute(request)
+        request = ModbusResetEnergyRequest(dev_id=self._device_id)
+        # pymodbus 3.x execute 簽名係 execute(no_response_expected, request)
+        self._client.execute(False, request)
 
     def info_gather(self) -> dict:
         data = {}

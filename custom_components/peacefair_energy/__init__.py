@@ -39,7 +39,7 @@ PLATFORMS = [Platform.SENSOR]
 
 # 服務名稱和架構定義
 SERVICE_RESET_ENERGY = "reset_energy"
-RESET_ENERGY_SCHEMA = vol.Schema({vol.Required(ATTR_ENTITY_ID): cv.entity_id})
+RESET_ENERGY_SCHEMA = vol.Schema({vol.Required(ATTR_ENTITY_ID): cv.entity_ids})
 
 
 async def async_setup(hass: HomeAssistant, hass_config: dict) -> bool:
